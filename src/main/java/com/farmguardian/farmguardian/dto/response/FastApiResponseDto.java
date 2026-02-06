@@ -26,6 +26,7 @@ public class FastApiResponseDto {
         private Integer id;
         private BoundingBox points;
         private Map<String, Double> confidence;
+        private String insectName;
         private String grow;
     }
 
@@ -40,43 +41,3 @@ public class FastApiResponseDto {
     }
 }
 
-//TODO : 실제 xtl ytl confidence 등 -> 179.33859252929688 / 0.4748542606830597 같은 수로 들어옴. 자료형 변경
-//TODO : 밑의 json 구조에 맞춰서 dto 구조 수정 필요. (id마다 나눠서 confidence )
-/*
-{
-    "total": 2,
-    "object": [
-        {
-            "id": 0,
-            "confidence": {
-                "큰28점박이무당벌레_성충": 0.4748542606830597
-            },
-            "points":
-                {
-                    "xtl": 150.3299560546875,
-                    "ytl": 126.67933654785156,
-                    "xbr": 220.78564453125,
-                    "ybr": 179.33859252929688
-                }
-            ,
-            "grow": "unknown"
-        },
-        {
-            "id": 1,
-            "confidence": {
-                "큰28점박이무당벌레_유충": 0.266615156
-            },
-            "points":
-                {
-                    "xtl": 150.3299560546875,
-                    "ytl": 126.67933654785156,
-                    "xbr": 220.78564453125,
-                    "ybr": 179.33859252929688
-                },
-
-            "grow": "unknown"
-        }
-    ]
-}
-
- */

@@ -2,11 +2,13 @@ package com.farmguardian.farmguardian.controller;
 
 import com.farmguardian.farmguardian.config.auth.UserDetailsImpl;
 import com.farmguardian.farmguardian.dto.request.ImageMetadataRequestDto;
+import com.farmguardian.farmguardian.dto.request.MobileImageUploadRequestDto;
 import com.farmguardian.farmguardian.dto.response.ImageAnalysisResponseDto;
 import com.farmguardian.farmguardian.dto.response.ImageListResponseDto;
 import com.farmguardian.farmguardian.dto.response.ImageDetailResponseDto;
 import com.farmguardian.farmguardian.service.ImageAnalyzeService;
 import com.farmguardian.farmguardian.service.ImageService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -23,9 +25,20 @@ public class ImageController {
     private final ImageAnalyzeService imageAnalyzeService;
     private final ImageService imageService;
 
+    // IoT 디바이스 이미지 분석
     @PostMapping("/analyze")
     public ResponseEntity<ImageAnalysisResponseDto> analyzeImage(@RequestBody ImageMetadataRequestDto request) {
         ImageAnalysisResponseDto response = imageAnalyzeService.analyzeImage(request);
+        return ResponseEntity.ok(response);
+    }
+
+    // 모바일 직접 촬영 이미지 분석
+    @PostMapping("/mobile/analyze")
+    public ResponseEntity<ImageAnalysisResponseDto> analyzeMobileImage(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Valid @RequestBody MobileImageUploadRequestDto request) {
+        Long userId = userDetails.getUserId();
+        ImageAnalysisResponseDto response = imageAnalyzeService.analyzeMobileImage(userId, request);
         return ResponseEntity.ok(response);
     }
 

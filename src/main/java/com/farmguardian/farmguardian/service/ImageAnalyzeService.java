@@ -5,11 +5,11 @@ import com.farmguardian.farmguardian.domain.OriginImage;
 import com.farmguardian.farmguardian.dto.request.FastApiRequestDto;
 import com.farmguardian.farmguardian.dto.request.FcmSendRequestDto;
 import com.farmguardian.farmguardian.dto.request.ImageMetadataRequestDto;
+import com.farmguardian.farmguardian.dto.request.MobileImageUploadRequestDto;
 import com.farmguardian.farmguardian.dto.response.FastApiResponseDto;
 import com.farmguardian.farmguardian.dto.response.ImageAnalysisResponseDto;
 import com.farmguardian.farmguardian.exception.device.DeviceNotFoundException;
 import com.farmguardian.farmguardian.exception.image.FastApiCallFailedException;
-import com.farmguardian.farmguardian.exception.image.ImageNotFoundException;
 import com.farmguardian.farmguardian.repository.DeviceRepository;
 import com.farmguardian.farmguardian.repository.OriginImageRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +31,9 @@ public class ImageAnalyzeService {
     private final FcmService fcmService;
     private final ImageService imageService;
     private final RestClient fastApiRestClient;
+    private final DeviceService deviceService;
 
-    private static final double CONFIDENCE_THRESHOLD = 0.6;
+    private static final double CONFIDENCE_THRESHOLD = 0.2;
 
     public ImageAnalysisResponseDto analyzeImage(ImageMetadataRequestDto request) {
 
@@ -102,8 +103,48 @@ public class ImageAnalyzeService {
             }
         }
 
-
         return pestList;
+    }
+
+    // 모바일 직접 촬영 이미지 분석
+    public ImageAnalysisResponseDto analyzeMobileImage(Long userId, MobileImageUploadRequestDto request) {
+        // 사용자의 모바일 디바이스 조회
+        Device mobileDevice = deviceService.getMobileDeviceByUserId(userId);
+
+        // 메타데이터 생성
+        ImageMetadataRequestDto metadataRequest = new ImageMetadataRequestDto();
+        metadataRequest.setDeviceUuid(mobileDevice.getDeviceUuid());
+        metadataRequest.setCloudUrl(request.getCloudUrl());
+        metadataRequest.setWidth(request.getWidth());
+        metadataRequest.setHeight(request.getHeight());
+        metadataRequest.setTemperature(null);
+        metadataRequest.setHumidity(null);
+
+        // db 저장
+        OriginImage originImage = imageService.saveMetaData(metadataRequest, mobileDevice);
+
+        // FastAPI 호출
+        FastApiResponseDto fastApiResponse = callFastApi(metadataRequest);
+
+        // 분석 결과 저장
+        imageService.saveAnalysisResult(originImage.getId(), fastApiResponse);
+
+        // 해충 필터링
+        List<ImageAnalysisResponseDto.PestInfo> detectedPests = filterHighConfidencePests(fastApiResponse);
+        boolean pestDetected = !detectedPests.isEmpty();
+
+        // 해충 감지 시 알림 전송
+        if (pestDetected) {
+            sendPestDetectionNotification(userId, detectedPests.size(), originImage.getId());
+        }
+
+        // 응답 생성
+        return ImageAnalysisResponseDto.builder()
+                .originImageId(originImage.getId())
+                .cloudUrl(request.getCloudUrl())
+                .pestDetected(pestDetected)
+                .pests(detectedPests)
+                .build();
     }
 
     private void sendPestDetectionNotification(Long userId, int pestCount, Long originImageId) {

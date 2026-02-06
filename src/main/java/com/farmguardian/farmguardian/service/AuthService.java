@@ -45,7 +45,19 @@ public class AuthService {
         User user = new User(request.getEmail(), encodedPassword, Role.USER);
         User saved = userRepository.save(user);
 
+        // 모바일 디바이스 자동 생성 및 연결
+        createMobileDevice(saved);
+
         return saved.getId();
+    }
+
+    private void createMobileDevice(User user) {
+        String mobileDeviceUuid = "mobile-user-" + user.getId();
+        Device mobileDevice = Device.builder()
+                .deviceUuid(mobileDeviceUuid)
+                .build();
+        mobileDevice.connectToUser(user, "직접 촬영", null, null, null);
+        deviceRepository.save(mobileDevice);
     }
 
     @Transactional

@@ -101,4 +101,11 @@ public class DeviceService {
 
         device.disconnectFromUser();
     }
+
+    // 사용자의 모바일 디바이스 조회
+    public Device getMobileDeviceByUserId(Long userId) {
+        String mobileDeviceUuid = "mobile-user-" + userId;
+        return deviceRepository.findByDeviceUuid(mobileDeviceUuid)
+                .orElseThrow(DeviceNotFoundException::new);
+    }
 }

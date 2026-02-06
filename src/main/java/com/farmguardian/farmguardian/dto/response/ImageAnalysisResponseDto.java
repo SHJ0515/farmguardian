@@ -16,7 +16,7 @@ import java.util.List;
 public class ImageAnalysisResponseDto {
     private Long originImageId;
     private String cloudUrl;
-    private Boolean pestDetected;  // 해충 존재 여부 (confidence >= 0.8)
+    private Boolean pestDetected;  // 해충 존재 여부
     private List<PestInfo> pests;  // 검출된 해충 목록
 
     @Getter
@@ -30,5 +30,3 @@ public class ImageAnalysisResponseDto {
         private FastApiResponseDto.BoundingBox boundingBox;  // 위치 정보
     }
 }
-
-//로그 기록, 실시간 요청,

@@ -16,4 +16,8 @@ public class ImageMetadataRequestDto {
     private Integer width;
 
     private Integer height;
+
+    private Double temperature;
+
+    private Double humidity;
 }
