@@ -76,6 +76,4 @@ public class DeviceController {
         return ResponseEntity.ok().build();
     }
 
-    // TODO : 현재 내가 보유중인 디바이스가 연결 가능한지 확인 하는 기능 추가.
-    // deviceUuid 를 입력하면 해당 device가 이미 다른 유저와 연결되어있는지 확인 후 연결이 없다면 연결 가능,
 }

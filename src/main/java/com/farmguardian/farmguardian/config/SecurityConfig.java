@@ -42,7 +42,7 @@ public class SecurityConfig {
                                 "/api/images/**",
                                 "/api/users/**",
                                 "/api/devices/**").permitAll()
-                        .anyRequest().authenticated() // 그 외 모든 요청은 인증 필요
+                        .anyRequest().authenticated()
                 )
 
                 // 4. JwtFilter를 UsernamePasswordAuthenticationFilter 앞에 추가

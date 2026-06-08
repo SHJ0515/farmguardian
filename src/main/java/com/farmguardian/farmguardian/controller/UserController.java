@@ -29,18 +29,4 @@ public class UserController {
         return ResponseEntity.ok("Capture command sent successfully");
     }
 
-    /*
-        @PostMapping("/{userId}/devices/{deviceId}/capture
-    public ResponseEntity<String> requestCapture(
-            @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @PathVariable("deviceId") Long deviceId) {
-        Long userId = userDetails.getUserId();
-        mqttService.requestCapture(userId, deviceId);
-        return ResponseEntity.ok("Capture command sent successfully");
-    }
-     */
-
-    //TODO: 사용자 로그 기록 (탐지 기록) 요청 및 조회
-    //TODO: 유저 정보
-
 }
