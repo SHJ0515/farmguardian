@@ -26,4 +26,8 @@ public class FcmSendRequestDto {
     private String cloudUrl;
 
     private Long deviceId;
+
+    public FcmSendRequestDto(String title, String body) {
+        this(title, body, null, null, null);
+    }
 }

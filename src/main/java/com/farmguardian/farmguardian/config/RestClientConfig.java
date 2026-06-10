@@ -1,14 +1,12 @@
 package com.farmguardian.farmguardian.config;
 
-import com.google.common.net.HttpHeaders;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.ClientHttpRequestFactories;
-import org.springframework.boot.web.client.ClientHttpRequestFactorySettings;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
@@ -29,20 +27,10 @@ public class RestClientConfig {
                 .build();
     }
 
-    /*
     private ClientHttpRequestFactory clientHttpRequestFactory(int connectTimeout, int readTimeout) {
-        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
-        factory.setConnectTimeout(connectTimeout);
-        factory.setReadTimeout(readTimeout);
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofSeconds(connectTimeout));
+        factory.setReadTimeout(Duration.ofSeconds(readTimeout));
         return factory;
     }
-     */
-
-    private ClientHttpRequestFactory clientHttpRequestFactory(int connectTimeout, int readTimeout) {
-        ClientHttpRequestFactorySettings settings = ClientHttpRequestFactorySettings.DEFAULTS
-                .withConnectTimeout(Duration.ofSeconds(connectTimeout))  // 연결 타임아웃을 5초로 설정
-                .withReadTimeout(Duration.ofSeconds(readTimeout)); // 읽기 타임아웃을 5초로 설정
-        return ClientHttpRequestFactories.get(settings);
-    }
 }
-

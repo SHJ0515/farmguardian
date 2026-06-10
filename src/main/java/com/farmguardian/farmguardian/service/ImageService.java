@@ -9,14 +9,14 @@ import com.farmguardian.farmguardian.dto.response.ImageDetailResponseDto;
 import com.farmguardian.farmguardian.exception.image.ImageAnalysisFailedException;
 import com.farmguardian.farmguardian.exception.image.ImageNotFoundException;
 import com.farmguardian.farmguardian.repository.OriginImageRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 @Slf4j
@@ -55,7 +55,7 @@ public class ImageService {
     private String convertToJson(FastApiResponseDto response) {
         try {
             return objectMapper.writeValueAsString(response);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("JSON 변환 실패: {}", e.getMessage(), e);
             throw new ImageAnalysisFailedException("분석 결과 JSON 변환 실패");
         }
