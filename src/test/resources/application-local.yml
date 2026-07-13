@@ -1,0 +1,21 @@
+# Synthetic test-only values. Do not reuse these credentials outside automated tests.
+spring:
+  datasource:
+    url: jdbc:h2:mem:farmguardian-local-test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+mqtt:
+  broker-url: tcp://localhost:1883
+  client-id: farmguardian-server-local-test
+  username: test
+  password: test
+  qos: 1
+  connection-timeout: 1
+  keep-alive-interval: 10
+  automatic-reconnect: false

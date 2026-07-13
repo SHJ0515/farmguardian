@@ -22,9 +22,9 @@ import static org.assertj.core.api.Assertions.*;
  * FCM 통합 테스트
  *
  * 실행 조건:
- * 1. Firebase 서비스 계정 키가 src/main/resources에 있어야 함
- * 2. application-local.yml에 firebase.service-account-file 설정 필요
- * 3. 실제 Firebase 프로젝트 필요
+ * 1. 테스트 전용 Firebase 프로젝트와 자격증명 필요
+ * 2. firebase.enabled=true 및 Application Default Credentials 또는 firebase.credentials-path 설정 필요
+ * 3. 실제 수신 테스트용 FCM 토큰 필요
  *
  * 테스트 방법:
  * - 실제 FCM 토큰으로 테스트하려면 REAL_FCM_TOKEN 값을 변경

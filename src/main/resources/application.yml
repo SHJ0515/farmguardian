@@ -1,23 +1,14 @@
 spring:
-    application:
-      name: farmguardian
-    jpa:
-      hibernate:
-        ddl-auto: update
-      show-sql: true
-    mvc:
-      throw-exception-if-no-handler-found: true
-    web:
-      resources:
-        add-mappings: false
+  application:
+    name: farmguardian
+  jpa:
+    show-sql: false
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
 
-decorator:
-  datasource:
-    p6spy:
-      log-format-strategy: multiline
-
-logging.level:
-  org.hibernate.SQL: debug
-  #org.hibernate.type: trace
-
-
+logging:
+  level:
+    org.hibernate.SQL: ${HIBERNATE_SQL_LOG_LEVEL:INFO}
