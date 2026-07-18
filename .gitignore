@@ -27,12 +27,17 @@ out/
 !**/src/test/**/out/
 application.properties
 application-dev.properties
-application-local.yml
-application-prod.yml
 application-secret.yml
+application-*-secret.yml
 .env
+.env.*
+!.env.example
 secret/
 .pem
+
+# Local-only recovery snapshots and runtime secret overrides
+/.codex-backups/
+/config/application-local-secret.yml
 
 # Firebase credentials
 *firebase*.json

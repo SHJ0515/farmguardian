@@ -1,0 +1,41 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800000}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
+
+firebase:
+  enabled: ${FIREBASE_ENABLED}
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+
+fastapi:
+  base-url: ${FASTAPI_BASE_URL}
+  timeout:
+    connect: ${FASTAPI_CONNECT_TIMEOUT:5}
+    read: ${FASTAPI_READ_TIMEOUT:10}
+
+mqtt:
+  broker-url: ${MQTT_BROKER_URL}
+  client-id: ${MQTT_CLIENT_ID}
+  username: ${MQTT_USERNAME}
+  password: ${MQTT_PASSWORD}
+  qos: ${MQTT_QOS:1}
+  connection-timeout: ${MQTT_CONNECTION_TIMEOUT:30}
+  keep-alive-interval: ${MQTT_KEEP_ALIVE_INTERVAL:60}
+  automatic-reconnect: ${MQTT_AUTOMATIC_RECONNECT:true}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+logging:
+  level:
+    org.hibernate.SQL: WARN

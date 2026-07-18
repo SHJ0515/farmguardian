@@ -62,3 +62,60 @@ tasks.named('asciidoctor') {
 	inputs.dir snippetsDir
 	dependsOn test
 }
+
+tasks.register('verifyNoSecretResources') {
+	group = 'verification'
+	description = 'Fails when secret-like files are placed in src/main/resources.'
+
+	doLast {
+		def forbiddenPatterns = [
+				'**/*firebase*.json',
+				'**/service-account*.json',
+				'**/application-*-secret.yml',
+				'**/.env*',
+				'**/*.jks',
+				'**/*.p12',
+				'**/*.pfx',
+				'**/*.pem',
+				'**/*.key'
+		]
+		def forbiddenFiles = forbiddenPatterns
+				.collectMany { pattern -> fileTree('src/main/resources') { include pattern }.files }
+		def serviceAccountJsonFiles = fileTree('src/main/resources') {
+			include '**/*.json'
+		}.files.findAll { file ->
+			def content = file.getText('UTF-8')
+			content.contains('"service_account"') && content.contains('"private_key"')
+		}
+		def sensitiveAssignment = ~/(?i)^\s*(password|secret|private[-_]?key|api[-_]?key|access[-_]?token|refresh[-_]?token)\s*:\s*(.*)$/
+		def literalSecretYamlFiles = fileTree('src/main/resources') {
+			include '**/*.yml', '**/*.yaml'
+		}.files.findAll { file ->
+			file.readLines('UTF-8').any { line ->
+				def matcher = sensitiveAssignment.matcher(line)
+				if (!matcher.matches()) {
+					return false
+				}
+				def value = matcher.group(2).trim()
+				!value.isEmpty() && !value.startsWith('${') && !value.startsWith('#')
+			}
+		}
+		forbiddenFiles = (forbiddenFiles + serviceAccountJsonFiles + literalSecretYamlFiles).unique()
+
+		if (!forbiddenFiles.isEmpty()) {
+			def paths = forbiddenFiles
+					.collect { project.relativePath(it) }
+					.sort()
+					.join(', ')
+			throw new GradleException("Secret-like resource files must not be packaged: ${paths}")
+		}
+	}
+}
+
+tasks.named('processResources') {
+	dependsOn tasks.named('verifyNoSecretResources')
+}
+
+tasks.named('check') {
+	dependsOn tasks.named('verifyNoSecretResources')
+}
