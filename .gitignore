@@ -28,16 +28,33 @@ out/
 application.properties
 application-dev.properties
 application-secret.yml
+application-secret.yaml
 application-*-secret.yml
+application-*-secret.yaml
 .env
 .env.*
 !.env.example
 secret/
-.pem
+*.pem
+*.key
+*.jks
+*.p12
+*.pfx
+credentials.json
+service-account*.json
 
 # Local-only recovery snapshots and runtime secret overrides
 /.codex-backups/
 /config/application-local-secret.yml
+
+# Local documentation
+/docs/
+
+# Generated reports
+/output/
+
+# Database dumps / backups
+/*.sql
 
 # Firebase credentials
 *firebase*.json
@@ -71,6 +88,8 @@ ehthumbs.db
 ### VS Code ###
 .vscode/
 
-# claude
-.claudeignore
-CLAUDE.md
+# Local Gradle user home
+.gradle-user-home/
+
+# Local artifact that conflicts with Windows device names
+nul

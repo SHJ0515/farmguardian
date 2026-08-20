@@ -1,0 +1,99 @@
+# Build outputs
+target/
+build/
+.gradle/
+.gradle-user-home/
+*.class
+*.jar
+*.war
+*.ear
+out/
+bin/
+
+# IDE settings
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+*.swp
+*.swo
+*~
+.apt_generated/
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# Git internals
+.git/
+
+# Logs
+logs/
+*.log
+spring-shell.log
+npm-debug.log
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Node.js and frontend outputs
+node_modules/
+dist/
+.next/
+.nuxt/
+coverage/
+
+# Sensitive local configuration
+.env
+.env.local
+.env.*.local
+application.properties
+application-dev.properties
+application-secret.yml
+application-secret.yaml
+application-*-secret.yml
+application-*-secret.yaml
+/config/application-local-secret.yml
+/config/application-local-secret.yaml
+/.codex-backups/
+secret/
+*.pem
+*.key
+*.jks
+*.p12
+*.pfx
+credentials.json
+service-account*.json
+*firebase*.json
+
+# Database dumps and local databases
+/*.sql
+*.db
+*.sqlite
+
+# OS files
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Maven leftovers
+.mvn/
+mvnw
+mvnw.cmd
+
+# Local artifacts
+HELP.md
+nul
