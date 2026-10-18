@@ -55,10 +55,7 @@ public class AuthController {
     // 토큰 갱신
     @PostMapping("/refresh")
     public ResponseEntity<TokenResponseDto> refresh(@Valid @RequestBody RefreshTokenRequestDto request) {
-        TokenResponseDto response = authService.refreshAccessToken(
-                request.getRefreshToken(),
-                request.getClientUuid()
-        );
+        TokenResponseDto response = authService.refreshAccessToken(request.getRefreshToken(), request.getClientUuid());
         return ResponseEntity.ok(response);
     }
 }
