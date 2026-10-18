@@ -11,6 +11,9 @@ spring:
     show-sql: ${JPA_SHOW_SQL:false}
 
 jwt:
+  issuer: ${JWT_ISSUER:farmguardian-local}
+  access-token-audience: ${JWT_ACCESS_TOKEN_AUDIENCE:farmguardian-api-local}
+  refresh-token-audience: ${JWT_REFRESH_TOKEN_AUDIENCE:farmguardian-refresh-local}
   access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800000}
   refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
 

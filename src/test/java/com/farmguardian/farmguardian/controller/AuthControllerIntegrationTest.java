@@ -4,7 +4,8 @@ import tools.jackson.databind.ObjectMapper;
 import com.farmguardian.farmguardian.dto.request.SignInRequestDto;
 import com.farmguardian.farmguardian.dto.request.SignOutRequestDto;
 import com.farmguardian.farmguardian.dto.request.SignUpRequestDto;
-import com.farmguardian.farmguardian.repository.RefreshTokenRepository;
+import com.farmguardian.farmguardian.repository.RefreshSessionRepository;
+import com.farmguardian.farmguardian.repository.RefreshTokenHistoryRepository;
 import com.farmguardian.farmguardian.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,11 +38,15 @@ class AuthControllerIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
+    private RefreshTokenHistoryRepository refreshTokenHistoryRepository;
+
+    @Autowired
+    private RefreshSessionRepository refreshSessionRepository;
 
     @BeforeEach
     void setUp() {
-        refreshTokenRepository.deleteAll();
+        refreshTokenHistoryRepository.deleteAll();
+        refreshSessionRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -85,6 +90,20 @@ class AuthControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists())
                 .andExpect(jsonPath("$.refreshToken").exists());
+    }
+
+    @Test
+    @DisplayName("로그인은 DB 저장 한도를 넘는 clientUuid를 거부한다")
+    void signIn_RejectsOversizedClientUuid() throws Exception {
+        SignInRequestDto request = new SignInRequestDto();
+        request.setEmail("test@example.com");
+        request.setPassword("password123");
+        request.setClientUuid("c".repeat(256));
+
+        mockMvc.perform(post("/api/auth/signin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

@@ -4,7 +4,8 @@ import tools.jackson.databind.ObjectMapper;
 import com.farmguardian.farmguardian.domain.Platform;
 import com.farmguardian.farmguardian.dto.request.*;
 import com.farmguardian.farmguardian.repository.FcmTokenRepository;
-import com.farmguardian.farmguardian.repository.RefreshTokenRepository;
+import com.farmguardian.farmguardian.repository.RefreshSessionRepository;
+import com.farmguardian.farmguardian.repository.RefreshTokenHistoryRepository;
 import com.farmguardian.farmguardian.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +38,10 @@ class FcmControllerIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
+    private RefreshTokenHistoryRepository refreshTokenHistoryRepository;
+
+    @Autowired
+    private RefreshSessionRepository refreshSessionRepository;
 
     @Autowired
     private FcmTokenRepository fcmTokenRepository;
@@ -48,7 +52,8 @@ class FcmControllerIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         fcmTokenRepository.deleteAll();
-        refreshTokenRepository.deleteAll();
+        refreshTokenHistoryRepository.deleteAll();
+        refreshSessionRepository.deleteAll();
         userRepository.deleteAll();
 
         // 회원가입
