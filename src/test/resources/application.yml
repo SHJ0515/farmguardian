@@ -4,6 +4,9 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
+  flyway:
+    # Existing tests still use Hibernate create-drop. V1 is exercised by an isolated migration test.
+    enabled: false
   jpa:
     hibernate:
       ddl-auto: create-drop
