@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -24,14 +25,21 @@ public class JwtFilter extends OncePerRequestFilter {
         // 1. Authorization 헤더에서 JWT 토큰 추출
         String token = resolveToken(request);
 
-        // 2. 토큰 검증 및 인증 정보 설정
-        if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
-            Authentication authentication = jwtTokenProvider.getAuthentication(token);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        // 2. 유효한 Access Token만 한 번 파싱하여 인증 정보 설정
+        if (StringUtils.hasText(token)
+                && SecurityContextHolder.getContext().getAuthentication() == null) {
+            jwtTokenProvider.getAccessAuthentication(token)
+                    .ifPresent(this::setAuthentication);
         }
 
         // 3. 다음 필터로 진행
         filterChain.doFilter(request, response);
+    }
+
+    private void setAuthentication(Authentication authentication) {
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
     }
 
     // Authorization 헤더에서 Bearer 토큰 추출
