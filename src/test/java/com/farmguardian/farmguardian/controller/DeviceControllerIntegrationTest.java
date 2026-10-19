@@ -8,7 +8,8 @@ import com.farmguardian.farmguardian.dto.request.DeviceUpdateRequestDto;
 import com.farmguardian.farmguardian.dto.request.SignInRequestDto;
 import com.farmguardian.farmguardian.dto.request.SignUpRequestDto;
 import com.farmguardian.farmguardian.repository.DeviceRepository;
-import com.farmguardian.farmguardian.repository.RefreshTokenRepository;
+import com.farmguardian.farmguardian.repository.RefreshSessionRepository;
+import com.farmguardian.farmguardian.repository.RefreshTokenHistoryRepository;
 import com.farmguardian.farmguardian.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,14 +47,18 @@ class DeviceControllerIntegrationTest {
     private DeviceRepository deviceRepository;
 
     @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
+    private RefreshTokenHistoryRepository refreshTokenHistoryRepository;
+
+    @Autowired
+    private RefreshSessionRepository refreshSessionRepository;
 
     private String accessToken;
 
     @BeforeEach
     void setUp() throws Exception {
         deviceRepository.deleteAll();
-        refreshTokenRepository.deleteAll();
+        refreshTokenHistoryRepository.deleteAll();
+        refreshSessionRepository.deleteAll();
         userRepository.deleteAll();
 
         // 회원가입

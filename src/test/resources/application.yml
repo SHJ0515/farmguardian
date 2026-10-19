@@ -4,6 +4,9 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
+  flyway:
+    # Existing tests still use Hibernate create-drop. V1 is exercised by an isolated migration test.
+    enabled: false
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -11,6 +14,9 @@ spring:
 
 jwt:
   secret: VGVzdEp3dFNlY3JldEtleUZvckZhcm1HdWFyZGlhblRlc3RTdWl0ZTAwMDAwMDAw
+  issuer: farmguardian-test
+  access-token-audience: farmguardian-api-test
+  refresh-token-audience: farmguardian-refresh-test
   access-token-expiration: 1800000
   refresh-token-expiration: 604800000
 

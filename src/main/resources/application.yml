@@ -1,6 +1,18 @@
 spring:
   application:
     name: farmguardian
+  flyway:
+    # First enablement is allowed only for a newly created, verified empty database.
+    # After adoption, keep enabled for that Flyway-managed database so later versions run.
+    # Keep disabled while Hibernate ddl-auto is update/create/create-drop.
+    enabled: ${FLYWAY_ENABLED:false}
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    clean-disabled: true
+    validate-on-migrate: true
+    validate-migration-naming: true
+    fail-on-missing-locations: true
+    out-of-order: false
   jpa:
     show-sql: false
   mvc:

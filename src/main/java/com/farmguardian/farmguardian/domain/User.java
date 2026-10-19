@@ -26,7 +26,7 @@ public class User extends BaseDate {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    private Role role; // ✅ Role 필드
+    private Role role;
 
     @Builder
     public User(String email, String password, Role role) {
