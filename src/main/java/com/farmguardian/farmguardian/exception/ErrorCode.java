@@ -17,6 +17,7 @@ public enum ErrorCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH_006", "인증이 필요합니다"),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "AUTH_007", "리프레시 토큰을 찾을 수 없습니다"),
     CLIENT_UUID_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH_008", "디바이스 정보가 일치하지 않습니다"),
+    FORBIDDEN(HttpStatus.FORBIDDEN, "AUTH_009", "접근 권한이 없습니다"),
 
     // Device
     DEVICE_NOT_FOUND(HttpStatus.NOT_FOUND, "DEVICE_001", "존재하지 않는 디바이스입니다"),

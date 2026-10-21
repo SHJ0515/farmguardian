@@ -130,40 +130,43 @@ class FcmControllerIntegrationTest {
 
         // when & then - 토큰 삭제
         mockMvc.perform(delete("/api/fcm/token")
+                        .header("Authorization", "Bearer " + accessToken)
                         .param("token", "test-fcm-token-to-delete"))
                 .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("특정 사용자에게 푸시 알림 전송 성공")
-    void sendNotification_Success() throws Exception {
-        // given - FCM 토큰 등록
-        FcmTokenRegisterRequestDto tokenRequest = new FcmTokenRegisterRequestDto(
-                "test-fcm-token-for-notification",
-                Platform.ANDROID
-        );
-
-        mockMvc.perform(post("/api/fcm/token")
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(tokenRequest)));
-
-        // when
+    @DisplayName("기존 개별 푸시 알림 경로는 익명과 사용자 접근 차단")
+    void sendNotification_BlockedForAnonymousAndUser() throws Exception {
+        // given
         FcmSendRequestDto sendRequest = new FcmSendRequestDto(
                 "테스트 제목",
                 "테스트 내용입니다"
         );
 
-        // then - 실제 FCM 전송은 실패할 수 있지만 API 호출 자체는 성공해야 함
+        // when & then - 인증 정보가 없으면 401
         mockMvc.perform(post("/api/fcm/send/" + userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sendRequest)))
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.code").value("AUTH_006"));
+
+        // 유효한 USER Access Token도 차단된 경로에는 접근할 수 없음
+        mockMvc.perform(post("/api/fcm/send/" + userId)
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sendRequest)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.code").value("AUTH_009"));
     }
 
     @Test
-    @DisplayName("전체 사용자에게 푸시 알림 브로드캐스트 성공")
-    void broadcastNotification_Success() throws Exception {
+    @DisplayName("기존 전체 푸시 알림 경로는 익명과 사용자 접근 차단")
+    void broadcastNotification_BlockedForAnonymousAndUser() throws Exception {
         // given
         FcmSendRequestDto sendRequest = new FcmSendRequestDto(
                 "전체 공지",
@@ -174,19 +177,35 @@ class FcmControllerIntegrationTest {
         mockMvc.perform(post("/api/fcm/broadcast")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sendRequest)))
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.code").value("AUTH_006"));
+
+        mockMvc.perform(post("/api/fcm/broadcast")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sendRequest)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.code").value("AUTH_009"));
     }
 
     @Test
-    @DisplayName("FCM 알림 전송 실패 - 제목 누락")
-    void sendNotification_Fail_MissingTitle() throws Exception {
+    @DisplayName("기존 개별 푸시 알림 경로는 제목 검증 전에 사용자 접근 차단")
+    void sendNotification_BlockedBeforeTitleValidation() throws Exception {
         // given
         String invalidRequest = "{\"body\": \"내용만 있음\"}";
 
         // when & then
         mockMvc.perform(post("/api/fcm/send/1")
+                        .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidRequest))
-                .andExpect(status().is4xxClientError());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.code").value("AUTH_009"));
     }
 }

@@ -1,6 +1,8 @@
 package com.farmguardian.farmguardian.controller;
 
 import com.farmguardian.farmguardian.config.SecurityConfig;
+import com.farmguardian.farmguardian.config.auth.RestAccessDeniedHandler;
+import com.farmguardian.farmguardian.config.auth.RestAuthenticationEntryPoint;
 import com.farmguardian.farmguardian.config.jwt.JwtFilter;
 import com.farmguardian.farmguardian.config.jwt.JwtTokenProvider;
 import com.farmguardian.farmguardian.domain.Platform;
@@ -14,6 +16,7 @@ import com.farmguardian.farmguardian.dto.response.ImageDetailResponseDto;
 import com.farmguardian.farmguardian.dto.response.TokenResponseDto;
 import com.farmguardian.farmguardian.exception.ErrorCode;
 import com.farmguardian.farmguardian.exception.GlobalExceptionHandler;
+import com.farmguardian.farmguardian.exception.auth.InvalidTokenException;
 import com.farmguardian.farmguardian.gateway.MqttGateway;
 import com.farmguardian.farmguardian.service.AuthService;
 import com.farmguardian.farmguardian.service.DeviceService;
@@ -26,6 +29,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import jakarta.persistence.EntityManagerFactory;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.RequestDispatcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,6 +50,7 @@ import org.springframework.data.web.config.EnableSpringDataWebSupport;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ContextConfiguration;
@@ -193,6 +199,8 @@ class ApiAuthorizationIntegrationTest {
         SecurityFilterChain filterChain = applicationContext.getBean(SecurityFilterChain.class);
         assertThat(filterChain.getFilters()).anyMatch(JwtFilter.class::isInstance);
         assertThat(mockingDetails(jwtTokenProvider).isMock()).isFalse();
+        assertThat(mockingDetails(applicationContext.getBean(RestAuthenticationEntryPoint.class)).isMock()).isFalse();
+        assertThat(mockingDetails(applicationContext.getBean(RestAccessDeniedHandler.class)).isMock()).isFalse();
         for (Object service : businessServices()) {
             assertThat(mockingDetails(service).isMock()).isTrue();
         }
@@ -213,6 +221,17 @@ class ApiAuthorizationIntegrationTest {
     @MethodSource("publicEndpoints")
     @DisplayName("PUBLIC 4개는 Access 없이 기존 Controller로 진입한다")
     void publicEndpointsRemainAccessibleWithoutAccessToken(Endpoint endpoint) throws Exception {
+        assertPublicEndpointAccessible(endpoint, Credential.NONE);
+    }
+
+    @ParameterizedTest(name = "{0} / {1}")
+    @MethodSource("publicRequestsWithInvalidAccess")
+    @DisplayName("PUBLIC은 무효·만료·Refresh Bearer 헤더가 있어도 기존 업무 검증으로 진입한다")
+    void publicEndpointsIgnoreInvalidAccessHeader(Endpoint endpoint, Credential credential) throws Exception {
+        assertPublicEndpointAccessible(endpoint, credential);
+    }
+
+    private void assertPublicEndpointAccessible(Endpoint endpoint, Credential credential) throws Exception {
         TokenResponseDto tokens = new TokenResponseDto("Bearer", userAccessToken, refreshToken);
         if (endpoint.number() == 3) {
             when(authService.signIn(any(SignInRequestDto.class))).thenReturn(tokens);
@@ -220,7 +239,7 @@ class ApiAuthorizationIntegrationTest {
             when(authService.refreshAccessToken(refreshToken, CLIENT_UUID)).thenReturn(tokens);
         }
 
-        MvcResult result = mockMvc.perform(requestFor(endpoint)).andExpect(status().isOk()).andReturn();
+        MvcResult result = mockMvc.perform(withCredential(requestFor(endpoint), credential)).andExpect(status().isOk()).andReturn();
 
         switch (endpoint.number()) {
             case 1 -> content().string("Welcome to API!").match(result);
@@ -281,6 +300,127 @@ class ApiAuthorizationIntegrationTest {
         assertDeniedWithoutBusinessCalls(result, credential == Credential.NONE ? 401 : 403);
     }
 
+    @ParameterizedTest(name = "{0} / {1}")
+    @MethodSource("additionalDeniedRequests")
+    @DisplayName("관리자·상태 점검·logout·정적 경로의 미허용 메서드는 업무 실행 전에 거부한다")
+    void additionalSecurityBoundariesAreDenied(Endpoint endpoint, Credential credential) throws Exception {
+        MvcResult result = mockMvc.perform(withCredential(requestFor(endpoint), credential)).andReturn();
+        assertDeniedWithoutBusinessCalls(result, credential == Credential.NONE ? 401 : 403);
+    }
+
+    @ParameterizedTest(name = "{0} / {1}")
+    @MethodSource("headRequests")
+    @DisplayName("HEAD도 별도 허용하지 않으며 응답 본문 없이 상태와 업무 미호출을 검증한다")
+    void headRequestsRemainDenied(Endpoint endpoint, Credential credential) throws Exception {
+        MvcResult result = mockMvc.perform(withCredential(requestFor(endpoint), credential)).andReturn();
+        assertAll(
+                () -> assertThat(result.getResponse().getStatus()).isEqualTo(credential == Credential.NONE ? 401 : 403),
+                () -> verifyNoInteractions(businessServices())
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("callerCredentials")
+    @DisplayName("승인되지 않은 CORS preflight를 일괄 허용하지 않는다")
+    void corsPreflightRemainsDenied(Credential credential) throws Exception {
+        MvcResult result = mockMvc.perform(withCredential(MockMvcRequestBuilders.options("/api/devices")
+                .header(HttpHeaders.ORIGIN, "https://unapproved.example.test")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "authorization"), credential)).andReturn();
+        assertDeniedWithoutBusinessCalls(result, credential == Credential.NONE ? 401 : 403);
+        assertThat(result.getResponse().getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN)).isNull();
+    }
+
+    @Test
+    @DisplayName("내부 ERROR의 error 경로는 원래 오류 상태를 보존한다 - MockMvc 디스패치 규칙 검증")
+    void internalErrorDispatchPreservesErrorStatus() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/error")
+                        .with(request -> {
+                            request.setDispatcherType(DispatcherType.ERROR);
+                            return request;
+                        })
+                        .requestAttr(RequestDispatcher.ERROR_STATUS_CODE, 500)
+                        .requestAttr(RequestDispatcher.ERROR_REQUEST_URI, "/api/auth/signin")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500));
+        verifyNoInteractions(businessServices());
+    }
+
+    @Test
+    @DisplayName("내부 ERROR 예외는 업무 경로를 공개하지 않는다")
+    void errorDispatchCannotInvokeBusinessEndpoint() throws Exception {
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/devices")
+                .with(request -> {
+                    request.setDispatcherType(DispatcherType.ERROR);
+                    return request;
+                })
+                .requestAttr(RequestDispatcher.ERROR_REQUEST_URI, "/api/devices")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminAccessToken)).andReturn();
+        assertDeniedWithoutBusinessCalls(result, 401);
+    }
+
+    @Test
+    @DisplayName("FORWARD error 경로는 ERROR 예외로 허용하지 않는다")
+    void forwardToErrorRemainsDenied() throws Exception {
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/error")
+                .with(request -> {
+                    request.setDispatcherType(DispatcherType.FORWARD);
+                    return request;
+                })).andReturn();
+        assertDeniedWithoutBusinessCalls(result, 401);
+    }
+
+    @Test
+    @DisplayName("MVC 권한 오류도 공통 403 코드로 응답한다")
+    void mvcAccessDeniedUsesForbiddenErrorCode() throws Exception {
+        when(deviceService.getDevicesByUserId(USER_ID)).thenThrow(new AccessDeniedException("test denied"));
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/devices")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + userAccessToken)).andReturn();
+        assertThat(result.getResponse().getStatus()).isEqualTo(403);
+        assertErrorJson(result, 403);
+        verify(deviceService).getDevicesByUserId(USER_ID);
+        verifyNoMoreInteractions(businessServices());
+    }
+
+    @Test
+    @DisplayName("PUBLIC Refresh 업무 오류를 URL 인가의 AUTH_006으로 덮지 않는다")
+    void refreshBusinessErrorRemainsUnchanged() throws Exception {
+        when(authService.refreshAccessToken(refreshToken, CLIENT_UUID)).thenThrow(new InvalidTokenException());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(REFRESH_BODY.formatted(refreshToken)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_TOKEN.getCode()));
+        verify(authService).refreshAccessToken(refreshToken, CLIENT_UUID);
+        verifyNoMoreInteractions(businessServices());
+    }
+
+    @Test
+    @DisplayName("인증된 USER 요청의 DTO 오류는 기존 400 응답을 유지한다")
+    void authenticatedValidationErrorRemainsBadRequest() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/fcm/token")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + userAccessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"platform\":\"ANDROID\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(ErrorCode.VALIDATION_ERROR.getCode()));
+        verifyNoInteractions(businessServices());
+    }
+
+    @Test
+    @DisplayName("허용된 PUBLIC 업무의 서버 오류는 기존 500 응답을 유지한다")
+    void publicBusinessFailureRemainsServerError() throws Exception {
+        when(authService.signIn(any(SignInRequestDto.class))).thenThrow(new IllegalStateException("test failure"));
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/signin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"url-auth@farmguardian.test\",\"password\":\"test-password\",\"clientUuid\":\"url-auth-client\"}"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
+        verify(authService).signIn(any(SignInRequestDto.class));
+        verifyNoMoreInteractions(businessServices());
+    }
+
     private void assertDeniedWithoutBusinessCalls(MvcResult result, int expectedStatus) {
         // 응답 검증이 실패해도 업무 Service가 실행됐는지 함께 기록한다.
         assertAll(
@@ -300,7 +440,10 @@ class ApiAuthorizationIntegrationTest {
         if (expectedStatus == 401) {
             jsonPath("$.code").value(ErrorCode.UNAUTHORIZED.getCode()).match(result);
         }
-        // 403 전용 ErrorCode 이름/번호는 임의로 확정하지 않고 공통 응답 구조만 검사한다.
+        if (expectedStatus == 403) {
+            jsonPath("$.code").value("AUTH_009").match(result);
+            jsonPath("$.message").value("접근 권한이 없습니다").match(result);
+        }
     }
 
     private MockHttpServletRequestBuilder requestFor(Endpoint endpoint) {
@@ -375,6 +518,41 @@ class ApiAuthorizationIntegrationTest {
         return PUBLIC_ENDPOINTS.stream();
     }
 
+    private static Stream<Arguments> publicRequestsWithInvalidAccess() {
+        return requests(PUBLIC_ENDPOINTS, Credential.MALFORMED, Credential.EXPIRED, Credential.REFRESH);
+    }
+
+    private static Stream<Arguments> additionalDeniedRequests() {
+        return requests(List.of(
+                new Endpoint(0, HttpMethod.GET, "/api/admin/devices/available", null),
+                new Endpoint(0, HttpMethod.POST, "/api/admin/notifications/users/42", NOTIFICATION_BODY),
+                new Endpoint(0, HttpMethod.GET, "/actuator/health", null),
+                new Endpoint(0, HttpMethod.GET, "/actuator/health/liveness", null),
+                new Endpoint(0, HttpMethod.GET, "/actuator/health/readiness", null),
+                new Endpoint(0, HttpMethod.GET, "/logout", null),
+                new Endpoint(0, HttpMethod.POST, "/logout", null),
+                new Endpoint(0, HttpMethod.PUT, "/logout", null),
+                new Endpoint(0, HttpMethod.DELETE, "/logout", null),
+                new Endpoint(0, HttpMethod.GET, "/error", null),
+                new Endpoint(0, HttpMethod.GET, "/api/users", null),
+                new Endpoint(0, HttpMethod.GET, "/api/devices/connect", null),
+                new Endpoint(0, HttpMethod.PATCH, "/api/devices/connect", "{}"),
+                new Endpoint(0, HttpMethod.DELETE, "/api/devices/connect", null),
+                new Endpoint(0, HttpMethod.PATCH, "/api/devices/available", "{}"),
+                new Endpoint(0, HttpMethod.DELETE, "/api/devices/available", null),
+                new Endpoint(0, HttpMethod.GET, "/api/images/analyze", null),
+                new Endpoint(0, HttpMethod.OPTIONS, "/api/auth/signin", null),
+                new Endpoint(0, HttpMethod.OPTIONS, "/api/devices", null)
+        ), Credential.NONE, Credential.USER, Credential.ADMIN);
+    }
+
+    private static Stream<Arguments> headRequests() {
+        return requests(List.of(
+                new Endpoint(0, HttpMethod.HEAD, "/", null),
+                new Endpoint(0, HttpMethod.HEAD, "/api/devices", null)
+        ), Credential.NONE, Credential.USER, Credential.ADMIN);
+    }
+
     private static Stream<Arguments> unauthorizedUserRequests() {
         return requests(USER_ENDPOINTS, Credential.NONE, Credential.MALFORMED, Credential.EXPIRED, Credential.REFRESH);
     }
@@ -420,6 +598,7 @@ class ApiAuthorizationIntegrationTest {
     @Configuration(proxyBeanMethods = false)
     @EnableSpringDataWebSupport
     @Import({SecurityConfig.class, JwtTokenProvider.class, GlobalExceptionHandler.class,
+            RestAuthenticationEntryPoint.class, RestAccessDeniedHandler.class,
             HomeController.class, AuthController.class, DeviceController.class,
             ImageController.class, FcmController.class, UserController.class})
     static class TestConfig {
