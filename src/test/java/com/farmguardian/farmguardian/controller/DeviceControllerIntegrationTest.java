@@ -133,12 +133,14 @@ class DeviceControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("연결 가능한 디바이스 목록 조회 성공")
-    void getAvailableDevices_Success() throws Exception {
+    @DisplayName("기존 연결 가능한 디바이스 목록 경로는 사용자 접근 차단")
+    void getAvailableDevices_BlockedForUser() throws Exception {
         mockMvc.perform(get("/api/devices/available")
                         .header("Authorization", "Bearer " + accessToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.code").value("AUTH_009"));
     }
 
     @Test
