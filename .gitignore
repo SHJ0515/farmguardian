@@ -47,8 +47,26 @@ service-account*.json
 /.codex-backups/
 /config/application-local-secret.yml
 
-# Local documentation
-/docs/
+# 기존 로컬 기록은 제외하고 프로젝트 기준 문서만 추적
+/docs/*
+!/docs/architecture.md
+!/docs/business-rules.md
+!/docs/security.md
+!/docs/standards.md
+!/docs/engineering-notes.md
+!/docs/operations.md
+!/docs/contracts.md
+!/docs/tracking/
+/docs/tracking/*
+!/docs/tracking/status.md
+!/docs/tracking/findings.md
+!/docs/tracking/decisions/
+/docs/tracking/decisions/*
+!/docs/tracking/decisions/index.md
+!/docs/tracking/decisions/[0-9][0-9][0-9][0-9]-*.md
+
+# 로컬 작업 상태와 진입 문서 백업
+/.dryforge/
 
 # Generated reports
 /output/

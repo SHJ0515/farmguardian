@@ -1,76 +1,72 @@
-# 프로젝트: farmguardian
+# FarmGuardian
 
-FarmGuardian은 농장 IoT 디바이스 관리, 이미지 분석(image analysis) 흐름,
-JWT 인증(authentication), Firebase Cloud Messaging(FCM), MQTT 촬영 명령,
-MySQL 영속성(persistence)을 담당하는 Spring Boot REST API 서버입니다.
+FarmGuardian은 운영진이 공급한 농장 IoT 장치와 네이티브 앱을 연결하는 Java 25·Spring Boot 4 REST API다.
+취업 포트폴리오용 단일 서버로, 로컬 기능 재현과 개선 전후 성능 비교가 목표다. 실제 서비스 운영·공유 농장·외부 임의 장치 연동은 현재 목표에 포함되지 않는다.
+한 계정에 여러 장치를 허용하며 장치마다 현재 소유자는 하나다. 앱·펌웨어·이미지 저장소·FastAPI 분석기는 이 저장소 밖에 있다.
 
-이 파일은 저장소 로컬 Codex 지침(repository-local Codex instructions)입니다.
-사용자/개발자/전역 지침도 적용되지만, 이 파일은 이 프로젝트의 기본 규칙을 정의합니다.
+## 프로젝트 경로
 
-## 프로젝트 지도(Project Map)
-
-- `src/main/java/com/farmguardian/farmguardian/FarmguardianApplication.java`: Spring Boot 진입점(entry point).
-- `src/main/java/com/farmguardian/farmguardian/config`: Spring 설정(configuration).
-- `src/main/java/com/farmguardian/farmguardian/config/auth`: 인증 Principal(authenticated principal) 지원.
-- `src/main/java/com/farmguardian/farmguardian/config/jwt`: JWT provider와 filter.
-- `src/main/java/com/farmguardian/farmguardian/controller`: REST controller.
-- `src/main/java/com/farmguardian/farmguardian/domain`: JPA entity와 domain model.
-- `src/main/java/com/farmguardian/farmguardian/dto/request`: 요청 DTO(request DTO).
-- `src/main/java/com/farmguardian/farmguardian/dto/response`: 응답 DTO(response DTO).
-- `src/main/java/com/farmguardian/farmguardian/exception`: global/domain exception.
-- `src/main/java/com/farmguardian/farmguardian/gateway`: MQTT 같은 integration gateway interface.
-- `src/main/java/com/farmguardian/farmguardian/repository`: Spring Data JPA repository.
-- `src/main/java/com/farmguardian/farmguardian/service`: application service와 business logic.
-- `src/main/resources`: runtime Spring configuration, static/template resource.
-- `src/test/java/com/farmguardian/farmguardian/controller`: controller integration test.
-- `src/test/java/com/farmguardian/farmguardian/service`: service test.
-- `src/test/java/com/farmguardian/farmguardian/repository`: repository test.
-- `src/test/resources`: H2와 local/mock external endpoint를 사용하는 test configuration.
-- `build/generated-snippets`, `build/docs/asciidoc`: `asciidoctor` 실행 후 생성되는 Spring REST Docs 산출물.
-
-이 저장소에는 FastAPI 소스가 없습니다. FastAPI는 `fastapi.*` 속성으로 설정되는
-외부 이미지 분석 서비스(external image analysis service)입니다.
-
-## 기술 스택(Tech Stack)
-
-- Java 25, Spring Boot 4.0.x, Gradle Wrapper.
-- Spring WebMVC, Spring Security, validation, JJWT 기반 JWT.
-- Spring Data JPA / Hibernate, runtime MySQL, test H2.
-- Firebase Admin SDK / FCM.
-- Spring Integration MQTT, Eclipse Paho.
-- JUnit 5, Spring Boot Test, Spring Security Test, Spring REST Docs.
-- Lombok, dev/test용 p6spy, Actuator.
-
-## 주요 명령(Key Commands)
-
-이 Windows 워크스페이스에서는 아래 명령을 사용합니다.
-
-```bash
-./gradlew.bat test
-./gradlew.bat check
-./gradlew.bat build
-./gradlew.bat bootRun
-./gradlew.bat asciidoctor
+```text
+farmguardian/
+├── AGENTS.md                              ← 프로젝트 개요와 작업 시작 기준
+├── CLAUDE.md                              ← 동일한 프로젝트 개요와 작업 시작 기준
+├── docs/
+│   ├── architecture.md                    ← 시스템 구성과 의존 방향
+│   ├── business-rules.md                  ← 공급 장치·사진·알림의 업무 규칙
+│   ├── security.md                        ← 인증·소유권·자격증명 정책
+│   ├── standards.md                       ← 계층·변경·검증의 전체 기준
+│   ├── engineering-notes.md               ← 트랜잭션·DB·연동의 함정
+│   ├── operations.md                      ← 로컬 준비·실행·기능/성능 검증
+│   ├── contracts.md                       ← 현재 API·외부 메시지·오류 계약
+│   └── tracking/
+│       ├── status.md                      ← 구현·검증·후속 범위·미정 사항
+│       ├── findings.md                    ← 조건과 영향이 있는 미해결 문제
+│       └── decisions/
+│           ├── index.md                   ← 확정 결정과 영향 목록
+│           ├── 0001-local-portfolio.md    ← 로컬 재현·성능 비교 목표
+│           ├── 0002-supplied-device-ownership.md ← 공급 장치·다중 등록·단일 소유
+│           ├── 0003-analysis-retention.md ← 분석·알림 실패와 데이터 보존
+│           ├── 0004-refresh-transactions.md ← Refresh 이력·잠금·폐기 commit
+│           ├── 0005-explicit-api-access.md ← 정확한 URL 허용과 기본 거부
+│           ├── 0006-native-bearer.md      ← 네이티브 앱 인증 전제
+│           ├── 0007-admin-current-role.md ← 관리자 현재 권한 확인
+│           ├── 0008-admin-device-page.md  ← 관리자 장치 목록의 크기·정렬
+│           ├── 0009-admin-notification.md ← 관리자 개별 알림의 기존 계약
+│           └── 0010-versioned-schema.md   ← 빈 DB 기준선·불변 순차 SQL
+└── src/
+    └── main/
+        ├── AGENTS.md                      ← 애플리케이션 시작·설정·DB 변경 경계
+        └── java/com/farmguardian/farmguardian/
+            ├── config/AGENTS.md           ← 보안·JWT·외부 클라이언트 조립
+            ├── controller/AGENTS.md       ← HTTP·principal·Service 호출
+            ├── domain/AGENTS.md           ← 상태·Entity·영속성 제약
+            ├── dto/AGENTS.md              ← 요청 검증·응답 형식·매핑
+            ├── exception/AGENTS.md        ← 업무 오류·HTTP 오류 변환
+            ├── gateway/AGENTS.md          ← MQTT 메시징 인터페이스
+            ├── repository/AGENTS.md       ← 소유권 조회·잠금·DB 접근
+            └── service/AGENTS.md          ← 업무 흐름·트랜잭션·외부 연동
 ```
 
-macOS/Linux에서는 `./gradlew`를 사용합니다.
+## 반드시 지킬 기준
 
-## 핵심 규칙(Core Rules)
+1. Controller에 업무 로직을 넣거나 JPA Entity를 API payload로 노출하지 않는다. Service·Repository·DTO 경계를 유지한다.
+2. 인증 주체와 소유권 검증을 우회하지 않는다. URL 인증이 있다고 사진·토큰·촬영의 자원별 권한까지 구현됐다고 간주하지 않는다.
+3. 실제 비밀번호·JWT·서비스 계정·알림 토큰을 소스·일반 로그·문서에 노출하지 않는다. 테스트에 실제 외부 자격증명을 요구하지 않는다.
+4. 적용된 DB 변경 SQL을 수정하거나 백업·대상 확인 없이 실제 DB를 변경하지 않는다. Git 복구와 DB 복구를 구분한다.
+5. 요청 범위와 사용자 수정을 보존한다. 동작 변경은 회귀 검증을 갖추고, 검증하지 않은 것을 완료로 보고하지 않는다.
 
-- Controller-Service-Repository 계층(layering)을 유지하고 controller에 business logic을 두지 않습니다.
-- JPA entity를 API request/response payload로 직접 노출하지 않습니다.
-- 인증/인가(authentication/authorization)는 Spring Security, JWT component, authenticated principal을 통해 처리합니다.
-- 예외 응답은 `GlobalExceptionHandler`, `ErrorCode`, domain exception으로 일관되게 처리합니다.
-- Spring Data JPA repository를 우선 사용하고, 필요한 경우에만 custom query strategy를 추가합니다.
-- 동작 변경(behavior change)이 있으면 가능한 한 먼저 test를 작성하거나 갱신합니다.
-- 변경 범위는 요청된 작업에 한정하고 unrelated refactoring을 피합니다.
-- 사용자 대화는 별도 요청이 없으면 한국어로 합니다. repository instruction 문서는 한글 중심에 핵심 기술 용어를 영어로 병기합니다.
-- 최종 보고에는 변경 파일, verification command, 결과, 검증 생략 사유를 포함합니다.
+## 작업 전 확인
 
-## 세부 규칙 참조(Rule References)
+- 기본: `docs/standards.md`, `docs/engineering-notes.md`, 변경 영역의 `AGENTS.md`와 관련 소스·테스트를 읽는다. 기존 `.codex/rules`의 경로별 규칙도 적용한다.
+- Git: 새 작업 브랜치는 별도 접두사 없이 `기능명-YYYYMMDD`로 이름 짓는다. 날짜는 한국 시간(Asia/Seoul)의 생성일이며 로컬 Git과 GitHub 원격에서 같은 이름을 사용한다.
+- 범위·우선순위: `docs/tracking/status.md`에서 로컬 포트폴리오 목표와 미정을 확인한다. 과거 운영 배포 계획을 최신 사용자 목표로 간주하지 않는다.
+- JWT·로그아웃·탈퇴·재발급: `docs/security.md`의 수명 정책과 `docs/engineering-notes.md`의 폐기 commit·잠금·flush 설명을 먼저 확인한다.
+- 장치·사진·FCM·촬영: `docs/business-rules.md`의 단일 소유·실패 시 보존, `docs/security.md`의 미완료 소유권, `docs/contracts.md`의 현재 호출 형식을 확인한다.
+- Entity·SQL: `src/main/AGENTS.md`와 `docs/engineering-notes.md`의 V1/V2·복구·H2 차이를 확인한 뒤 기존 데이터 영향과 검증 방법을 정한다.
+- 설정·실행·성능: `docs/operations.md`에서 프로필·외부 의존성과 측정 전제를 확인한다. 부하 규모나 성능 목표를 임의 확정하지 않는다.
 
-- Architecture rules: `.codex/rules/architecture.md`
-- Testing rules: `.codex/rules/testing.md`
-- Capability boundaries: `.codex/rules/capability-boundaries.md`
-- Lessons learned: `.codex/rules/lessons-learned.md`
-- Execution model: `.codex/rules/execution-model.md`
+## 문제 발견과 보고
+
+타 사용자 사진·장치·알림 토큰 접근, 인증 우회, 실제 비밀값 노출, Refresh 폐기 rollback, DB 손상 가능성은 영향 경로와 함께 즉시 사용자에게 알린다. 해결되지 않은 다른 문제는 조건·영향·지금 해결하지 못하는 이유·접근 방법을 `docs/tracking/findings.md`에 기록한다. 미정 업무 규칙·보안 정책을 구현 관행만으로 확정하지 않는다.
+
+대화와 지침은 한국어 중심으로 작성한다. 최종 보고에는 변경 파일, 실행한 검증 명령과 결과, 생략 사유, 남은 위험을 포함한다. 기본 검증은 `./gradlew.bat test`, `check`, `build`이며 문서 산출물 검증은 `asciidoctor`다.
